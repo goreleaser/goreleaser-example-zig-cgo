@@ -1,0 +1,33 @@
+name: release
+
+# run only on tags
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+   contents: write # needed to write releases
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # this is important, otherwise it won't checkout the full tree (i.e. no previous tags)
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+          cache: true
+      - uses: goto-bus-stop/setup-zig@v2
+      - name: Set output
+        id: macos_sdk
+        run: echo "path=$(xcrun --show-sdk-path)" >> $GITHUB_OUTPUT
+      - uses: goreleaser/goreleaser-action@v4          # run goreleaser
+        with:
+          version: latest
+          args: release --clean
+        env:
+          SDK_PATH: ${{ steps.macos_sdk.outputs.path }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
